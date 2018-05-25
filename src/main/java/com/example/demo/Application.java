@@ -44,23 +44,23 @@ public class Application {
                     ImmutableMap.of("body", ImmutableMap.of("dummy", "dum-dum")), StuffDto.class));
         }
     }
-
-    @ControllerAdvice
-    public static class WithGenericHandlerControllerAdvice {
-        @ExceptionHandler( {JsonMappingException.class, MismatchedInputException.class})
-        public ResponseEntity<Void> handleJsonWithGeneric(Exception exception) {
-            log.warn("handleJsonWithGeneric", exception);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).header("X-ERROR",
-                    ((JsonMappingException) NestedExceptionUtils.getMostSpecificCause(exception)).getOriginalMessage()).build();
-        }
-
-//        @ExceptionHandler
-//        public ResponseEntity<Void> handleGeneric(Exception exception) {
-//            log.error("handleGeneric", exception);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header("X-ERROR",
-//                    NestedExceptionUtils.getMostSpecificCause(exception).getMessage()).build();
+//
+//    @ControllerAdvice
+//    public static class Advice {
+//        @ExceptionHandler( {JsonMappingException.class, MismatchedInputException.class})
+//        public ResponseEntity<Void> handleJsonWithGeneric(Exception exception) {
+//            log.warn("handleJsonWithGeneric", exception);
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).header("X-ERROR",
+//                    ((JsonMappingException) NestedExceptionUtils.getMostSpecificCause(exception)).getOriginalMessage()).build();
 //        }
-    }
+//
+////        @ExceptionHandler
+////        public ResponseEntity<Void> handleGeneric(Exception exception) {
+////            log.error("handleGeneric", exception);
+////            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header("X-ERROR",
+////                    NestedExceptionUtils.getMostSpecificCause(exception).getMessage()).build();
+////        }
+//    }
 //
 //    @ControllerAdvice
 //    public static class NoGenericHandlerControllerAdvice {
