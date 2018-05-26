@@ -78,7 +78,7 @@ public class Tests {
         }
     }
 
-    interface GenericHandler {
+    interface GenericHandlerError {
         @ExceptionHandler
         default public ResponseEntity<String> handleGeneric(Exception exception) {
             log.warn("handleGeneric", exception);
@@ -113,12 +113,12 @@ public class Tests {
     /**
      * This fails just because we've added catch-all @ExceptionHandler
      */
-    @ContextConfiguration(classes = ExplicitGeneric.class)
+    @ContextConfiguration(classes = ExplicitGeneric_CatchAllBug.class)
     @TestConfiguration
-    public static class ExplicitGeneric extends Base {
+    public static class ExplicitGeneric_CatchAllBug extends Base {
 
         @RestControllerAdvice
-        public class Advice implements InnerHandler, GenericHandler {
+        public class Advice implements InnerHandler, GenericHandlerError {
         }
     }
 
@@ -130,7 +130,7 @@ public class Tests {
     public static class WorkaroundAdditionalOuter extends Base {
 
         @RestControllerAdvice
-        public class Advice implements OuterHandler, InnerHandlerError, GenericHandler {
+        public class Advice implements OuterHandler, InnerHandlerError, GenericHandlerError {
         }
     }
 
@@ -142,27 +142,27 @@ public class Tests {
     public static class WorkaroundAdditionalAdvice extends Base {
 
         @RestControllerAdvice
-        public class AdviceWithNoGeneric implements InnerHandler {
+        public class Advice implements InnerHandlerError, GenericHandlerError {
         }
 
         @RestControllerAdvice
-        public class Advice implements InnerHandlerError, GenericHandler {
+        public class AdviceWithNoGeneric implements InnerHandler {
         }
     }
 
     /**
      * Catching MyInnerException in a separate ControllerAdvice also works
      */
-    @ContextConfiguration(classes = WorkaroundAdditionalAdviceAnotherOrder.class)
+    @ContextConfiguration(classes = WorkaroundAdditionalAdvice_UnluckyHashBug.class)
     @TestConfiguration
-    public static class WorkaroundAdditionalAdviceAnotherOrder extends Base {
-
-        @RestControllerAdvice
-        public class Advice implements InnerHandlerError, GenericHandler {
-        }
+    public static class WorkaroundAdditionalAdvice_UnluckyHashBug extends Base {
 
         @RestControllerAdvice
         public class AdviceWithNoGeneric implements InnerHandler {
+        }
+
+        @RestControllerAdvice
+        public class Advice implements InnerHandlerError, GenericHandlerError {
         }
     }
 }
