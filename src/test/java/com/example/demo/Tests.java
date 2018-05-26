@@ -165,4 +165,26 @@ public class Tests {
         public class Advice implements InnerHandlerError, GenericHandlerError {
         }
     }
+
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    @ContextConfiguration(classes = SingleAspect_DeepExceptionBug.class)
+    @TestConfiguration
+    public static class SingleAspect_DeepExceptionBug {
+
+        @Autowired
+        protected WebApplicationContext webApplicationContext;
+
+        @Test
+        public void deep() throws Exception {
+            MockMvcBuilders.webAppContextSetup(webApplicationContext).build()
+                    .perform(get("/deep"))
+                    .andExpect(status().isIAmATeapot())
+                    .andExpect(content().string(Application.EXPECTED_DEEP_ERROR));
+        }
+
+        @RestControllerAdvice
+        public class Advice implements InnerHandler {
+        }
+    }
 }

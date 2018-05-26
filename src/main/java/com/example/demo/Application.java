@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SpringBootApplication
 public class Application {
 
+    static final String EXPECTED_DEEP_ERROR = "ExpectedDeep";
     static final String EXPECTED_ERROR = "Expected";
 
     public static void main(String[] args) {
@@ -41,6 +42,13 @@ public class Application {
         @GetMapping
         public ResponseEntity doNastyStuff() throws Exception {
             throw new MyOuterException("Unexpected", new MyInnerException(EXPECTED_ERROR));
+        }
+
+        @GetMapping("/deep")
+        public ResponseEntity doNastyStuffInTheMiddle() throws Exception {
+            throw new MyOuterException("Unexpected Outer",
+                    new MyMiddleException("Unexpected Middle",
+                            new MyInnerException(EXPECTED_ERROR)));
         }
     }
 }
