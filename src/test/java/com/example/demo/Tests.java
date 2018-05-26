@@ -22,6 +22,7 @@ import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.I_AM_A_TEAPOT;
+import static org.springframework.http.ResponseEntity.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,8 +46,8 @@ public class Tests {
         }
     }
 
-    private static String getOriginal(Exception exception) {
-        return ((JsonMappingException) getMostSpecificCause(exception)).getOriginalMessage();
+    private static String extractMessage(Exception exception) {
+        return getMostSpecificCause(exception).getMessage();
     }
 
     /**
@@ -62,7 +63,7 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return exception.getOriginalMessage();
+                return extractMessage(exception);
             }
         }
     }
@@ -80,19 +81,18 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return exception.getOriginalMessage();
+                return extractMessage(exception);
             }
 
             @SuppressWarnings("Duplicates")
             @ExceptionHandler
             public ResponseEntity<String> handleGenericIAE(IllegalArgumentException exception) {
-                Throwable cause = getMostSpecificCause(exception);
-                if (cause instanceof JsonMappingException) {
+                if (getMostSpecificCause(exception) instanceof JsonMappingException) {
                     log.warn("handleGenericIAE", exception);
-                    return ResponseEntity.status(BAD_REQUEST).body(cause.getMessage());
+                    return status(BAD_REQUEST).body(extractMessage(exception));
                 } else {
                     log.error("handleGenericIAE", exception);
-                    return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(cause.getMessage());
+                    return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
                 }
             }
         }
@@ -111,14 +111,14 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return getOriginal(exception);
+                return extractMessage(exception);
             }
 
             @ResponseStatus(INTERNAL_SERVER_ERROR)
             @ExceptionHandler
             public String handleGeneric(Exception exception) {
                 log.error("handleGeneric", exception);
-                return getMostSpecificCause(exception).getMessage();
+                return extractMessage(exception);
             }
         }
     }
@@ -136,19 +136,18 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return getOriginal(exception);
+                return extractMessage(exception);
             }
 
             @SuppressWarnings("Duplicates")
             @ExceptionHandler
             public ResponseEntity<String> handleGenericIAE(IllegalArgumentException exception) {
-                Throwable cause = getMostSpecificCause(exception);
-                if (cause instanceof JsonMappingException) {
+                if (getMostSpecificCause(exception) instanceof JsonMappingException) {
                     log.warn("handleGenericIAE", exception);
-                    return ResponseEntity.status(BAD_REQUEST).body(cause.getMessage());
+                    return status(BAD_REQUEST).body(extractMessage(exception));
                 } else {
                     log.error("handleGenericIAE", exception);
-                    return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(cause.getMessage());
+                    return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
                 }
             }
 
@@ -156,7 +155,7 @@ public class Tests {
             @ExceptionHandler
             public String handleGeneric(Exception exception) {
                 log.error("handleGeneric", exception);
-                return getMostSpecificCause(exception).getMessage();
+                return extractMessage(exception);
             }
         }
     }
@@ -174,14 +173,14 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return getOriginal(exception);
+                return extractMessage(exception);
             }
 
             @ResponseStatus(INTERNAL_SERVER_ERROR)
             @ExceptionHandler
             public String handleGeneric(Exception exception) {
                 log.error("handleGeneric", exception);
-                return getMostSpecificCause(exception).getMessage();
+                return extractMessage(exception);
             }
         }
 
@@ -191,7 +190,7 @@ public class Tests {
             @ExceptionHandler
             public String handleJson(JsonMappingException exception) {
                 log.warn("handleJson", exception);
-                return getOriginal(exception);
+                return extractMessage(exception);
             }
         }
     }
