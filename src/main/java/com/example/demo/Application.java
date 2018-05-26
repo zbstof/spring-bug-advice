@@ -27,7 +27,7 @@ public class Application {
 
         @GetMapping
         public ResponseEntity doNastyStuff() {
-            throw new IllegalArgumentException(EXPECTED_ERROR, MismatchedInputException.from(null, String.class, EXPECTED_ERROR));
+            throw new IllegalArgumentException("Unexpected", MismatchedInputException.from(null, String.class, EXPECTED_ERROR));
         }
     }
 }
