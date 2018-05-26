@@ -1,7 +1,5 @@
 package com.example.demo;
 
-import lombok.extern.log4j.Log4j2;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Log4j2
 @SpringBootApplication
 public class Application {
 
@@ -19,9 +16,15 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    static class MyException extends Exception {
-        public MyException(String message) {
+    static class MyInnerException extends Exception {
+        public MyInnerException(String message) {
             super(message);
+        }
+    }
+
+    static class MyMiddleException extends Exception {
+        public MyMiddleException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
@@ -37,7 +40,7 @@ public class Application {
 
         @GetMapping
         public ResponseEntity doNastyStuff() throws Exception {
-            throw new MyOuterException("Unexpected", new MyException(EXPECTED_ERROR));
+            throw new MyOuterException("Unexpected", new MyInnerException(EXPECTED_ERROR));
         }
     }
 }

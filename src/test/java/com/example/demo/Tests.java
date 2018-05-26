@@ -1,9 +1,9 @@
 package com.example.demo;
 
-import lombok.extern.log4j.Log4j2;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -12,15 +12,13 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.example.demo.Application.MyException;
+import com.example.demo.Application.MyInnerException;
 import com.example.demo.Application.MyOuterException;
 
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.I_AM_A_TEAPOT;
 import static org.springframework.http.ResponseEntity.status;
@@ -28,9 +26,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SuppressWarnings("unused")
-@Log4j2
+@SuppressWarnings( {"unused", "Duplicates", "UnnecessaryInterfaceModifier"})
 public class Tests {
+
+    private static final Logger log = LoggerFactory.getLogger("test");
 
     @RunWith(SpringRunner.class)
     @SpringBootTest
@@ -42,13 +41,49 @@ public class Tests {
         public void test() throws Exception {
             MockMvcBuilders.webAppContextSetup(webApplicationContext).build()
                     .perform(get("/"))
-                    .andExpect(status().isBadRequest())
+                    .andExpect(status().isIAmATeapot())
                     .andExpect(content().string(Application.EXPECTED_ERROR));
         }
     }
 
     private static String extractMessage(Exception exception) {
         return getMostSpecificCause(exception).getMessage();
+    }
+
+    interface OuterHandler {
+        @ExceptionHandler
+        default public ResponseEntity<String> handleOuter(MyOuterException exception) {
+            log.warn("handleOuter", exception);
+            if (getMostSpecificCause(exception) instanceof MyInnerException) {
+                return status(I_AM_A_TEAPOT).body(extractMessage(exception));
+            } else {
+                return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+            }
+        }
+    }
+
+    interface InnerHandlerError {
+        @ExceptionHandler
+        default public ResponseEntity<String> handleInner(MyInnerException exception) {
+            log.warn("handleInner", exception);
+            return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+        }
+    }
+
+    interface InnerHandler {
+        @ExceptionHandler
+        default public ResponseEntity<String> handleInner(MyInnerException exception) {
+            log.warn("handleInner", exception);
+            return status(I_AM_A_TEAPOT).body(extractMessage(exception));
+        }
+    }
+
+    interface GenericHandler {
+        @ExceptionHandler
+        default public ResponseEntity<String> handleGeneric(Exception exception) {
+            log.warn("handleGeneric", exception);
+            return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+        }
     }
 
     /**
@@ -59,141 +94,75 @@ public class Tests {
     public static class SingleAdviceTest extends Base {
 
         @RestControllerAdvice
-        public class Advice {
-            @ResponseStatus(BAD_REQUEST)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
+        public class Advice implements InnerHandler {
         }
     }
 
     /**
-     * This passes as handleGenericIAE returns badRequest, but handleJson is not invoked now
+     * This passes as handleOuter returns badRequest, but handleInner is not invoked now
      */
-    @ContextConfiguration(classes = IaeNoGeneric.class)
+    @ContextConfiguration(classes = OuterNoGeneric.class)
     @TestConfiguration
-    public static class IaeNoGeneric extends Base {
+    public static class OuterNoGeneric extends Base {
 
         @RestControllerAdvice
-        public class Advice {
-            @ResponseStatus(I_AM_A_TEAPOT)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
-
-            @SuppressWarnings("Duplicates")
-            @ExceptionHandler
-            public ResponseEntity<String> handleGenericIAE(MyOuterException exception) {
-                if (getMostSpecificCause(exception) instanceof MyException) {
-                    log.warn("handleGenericIAE", exception);
-                    return status(BAD_REQUEST).body(extractMessage(exception));
-                } else {
-                    log.error("handleGenericIAE", exception);
-                    return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
-                }
-            }
+        public class Advice implements OuterHandler, InnerHandlerError {
         }
     }
 
     /**
      * This fails just because we've added catch-all @ExceptionHandler
      */
-    @ContextConfiguration(classes = ExplicitGenericExceptionHandler.class)
+    @ContextConfiguration(classes = ExplicitGeneric.class)
     @TestConfiguration
-    public static class ExplicitGenericExceptionHandler extends Base {
+    public static class ExplicitGeneric extends Base {
 
         @RestControllerAdvice
-        public class Advice {
-            @ResponseStatus(BAD_REQUEST)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
-
-            @ResponseStatus(INTERNAL_SERVER_ERROR)
-            @ExceptionHandler
-            public String handleGeneric(Exception exception) {
-                log.error("handleGeneric", exception);
-                return extractMessage(exception);
-            }
+        public class Advice implements InnerHandler, GenericHandler {
         }
     }
 
     /**
      * Catching MyOuterException works along with catch-all
      */
-    @ContextConfiguration(classes = WorkaroundAdditionalIaeHandler.class)
+    @ContextConfiguration(classes = WorkaroundAdditionalOuter.class)
     @TestConfiguration
-    public static class WorkaroundAdditionalIaeHandler extends Base {
+    public static class WorkaroundAdditionalOuter extends Base {
 
         @RestControllerAdvice
-        public class Advice {
-            @ResponseStatus(BAD_REQUEST)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
-
-            @SuppressWarnings("Duplicates")
-            @ExceptionHandler
-            public ResponseEntity<String> handleGenericIAE(MyOuterException exception) {
-                if (getMostSpecificCause(exception) instanceof MyException) {
-                    log.warn("handleGenericIAE", exception);
-                    return status(BAD_REQUEST).body(extractMessage(exception));
-                } else {
-                    log.error("handleGenericIAE", exception);
-                    return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
-                }
-            }
-
-            @ResponseStatus(INTERNAL_SERVER_ERROR)
-            @ExceptionHandler
-            public String handleGeneric(Exception exception) {
-                log.error("handleGeneric", exception);
-                return extractMessage(exception);
-            }
+        public class Advice implements OuterHandler, InnerHandlerError, GenericHandler {
         }
     }
 
     /**
-     * Catching MyException in a separate ControllerAdvice also works
+     * Catching MyInnerException in a separate ControllerAdvice also works
      */
-    @ContextConfiguration(classes = WorkaroundAdditionalAdviceTest.class)
+    @ContextConfiguration(classes = WorkaroundAdditionalAdvice.class)
     @TestConfiguration
-    public static class WorkaroundAdditionalAdviceTest extends Base {
+    public static class WorkaroundAdditionalAdvice extends Base {
 
         @RestControllerAdvice
-        public class Advice {
-            @ResponseStatus(BAD_REQUEST)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
-
-            @ResponseStatus(INTERNAL_SERVER_ERROR)
-            @ExceptionHandler
-            public String handleGeneric(Exception exception) {
-                log.error("handleGeneric", exception);
-                return extractMessage(exception);
-            }
+        public class AdviceWithNoGeneric implements InnerHandler {
         }
 
         @RestControllerAdvice
-        public class AdviceWithNoGeneric {
-            @ResponseStatus(BAD_REQUEST)
-            @ExceptionHandler
-            public String handleJson(MyException exception) {
-                log.warn("handleJson", exception);
-                return extractMessage(exception);
-            }
+        public class Advice implements InnerHandlerError, GenericHandler {
         }
     }
 
+    /**
+     * Catching MyInnerException in a separate ControllerAdvice also works
+     */
+    @ContextConfiguration(classes = WorkaroundAdditionalAdviceAnotherOrder.class)
+    @TestConfiguration
+    public static class WorkaroundAdditionalAdviceAnotherOrder extends Base {
+
+        @RestControllerAdvice
+        public class Advice implements InnerHandlerError, GenericHandler {
+        }
+
+        @RestControllerAdvice
+        public class AdviceWithNoGeneric implements InnerHandler {
+        }
+    }
 }
