@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-
 @Log4j2
 @SpringBootApplication
 public class Application {
@@ -21,13 +19,25 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
+    static class MyException extends Exception {
+        public MyException(String message) {
+            super(message);
+        }
+    }
+
+    static class MyOuterException extends Exception {
+        public MyOuterException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     @RestController
     @RequestMapping("/")
     public static class StuffController {
 
         @GetMapping
-        public ResponseEntity doNastyStuff() {
-            throw new IllegalArgumentException("Unexpected", MismatchedInputException.from(null, String.class, EXPECTED_ERROR));
+        public ResponseEntity doNastyStuff() throws Exception {
+            throw new MyOuterException("Unexpected", new MyException(EXPECTED_ERROR));
         }
     }
 }

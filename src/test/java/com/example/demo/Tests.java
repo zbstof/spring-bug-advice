@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.example.demo.Application.MyException;
+import com.example.demo.Application.MyOuterException;
 
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -51,7 +52,7 @@ public class Tests {
     }
 
     /**
-     * This passes even though we originally throw IllegalArgumentException in the controller
+     * This passes even though we originally throw MyOuterException in the controller
      */
     @ContextConfiguration(classes = SingleAdviceTest.class)
     @TestConfiguration
@@ -61,7 +62,7 @@ public class Tests {
         public class Advice {
             @ResponseStatus(BAD_REQUEST)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
@@ -79,15 +80,15 @@ public class Tests {
         public class Advice {
             @ResponseStatus(I_AM_A_TEAPOT)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
 
             @SuppressWarnings("Duplicates")
             @ExceptionHandler
-            public ResponseEntity<String> handleGenericIAE(IllegalArgumentException exception) {
-                if (getMostSpecificCause(exception) instanceof JsonMappingException) {
+            public ResponseEntity<String> handleGenericIAE(MyOuterException exception) {
+                if (getMostSpecificCause(exception) instanceof MyException) {
                     log.warn("handleGenericIAE", exception);
                     return status(BAD_REQUEST).body(extractMessage(exception));
                 } else {
@@ -109,7 +110,7 @@ public class Tests {
         public class Advice {
             @ResponseStatus(BAD_REQUEST)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
@@ -124,7 +125,7 @@ public class Tests {
     }
 
     /**
-     * Catching IllegalArgumentException works along with catch-all
+     * Catching MyOuterException works along with catch-all
      */
     @ContextConfiguration(classes = WorkaroundAdditionalIaeHandler.class)
     @TestConfiguration
@@ -134,15 +135,15 @@ public class Tests {
         public class Advice {
             @ResponseStatus(BAD_REQUEST)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
 
             @SuppressWarnings("Duplicates")
             @ExceptionHandler
-            public ResponseEntity<String> handleGenericIAE(IllegalArgumentException exception) {
-                if (getMostSpecificCause(exception) instanceof JsonMappingException) {
+            public ResponseEntity<String> handleGenericIAE(MyOuterException exception) {
+                if (getMostSpecificCause(exception) instanceof MyException) {
                     log.warn("handleGenericIAE", exception);
                     return status(BAD_REQUEST).body(extractMessage(exception));
                 } else {
@@ -161,7 +162,7 @@ public class Tests {
     }
 
     /**
-     * Catching JsonMappingException in a separate ControllerAdvice also works
+     * Catching MyException in a separate ControllerAdvice also works
      */
     @ContextConfiguration(classes = WorkaroundAdditionalAdviceTest.class)
     @TestConfiguration
@@ -171,7 +172,7 @@ public class Tests {
         public class Advice {
             @ResponseStatus(BAD_REQUEST)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
@@ -188,7 +189,7 @@ public class Tests {
         public class AdviceWithNoGeneric {
             @ResponseStatus(BAD_REQUEST)
             @ExceptionHandler
-            public String handleJson(JsonMappingException exception) {
+            public String handleJson(MyException exception) {
                 log.warn("handleJson", exception);
                 return extractMessage(exception);
             }
