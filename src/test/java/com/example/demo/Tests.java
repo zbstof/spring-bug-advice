@@ -151,7 +151,7 @@ public class Tests {
     }
 
     /**
-     * Catching MyInnerException in a separate ControllerAdvice also works
+     * Catching MyInnerException in a separate ControllerAdvice doesn't work if rearranged
      */
     @ContextConfiguration(classes = WorkaroundAdditionalAdvice_UnluckyHashBug.class)
     @TestConfiguration
