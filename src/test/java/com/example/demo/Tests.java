@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -42,12 +44,8 @@ public class Tests {
             MockMvcBuilders.webAppContextSetup(webApplicationContext).build()
                     .perform(get("/"))
                     .andExpect(status().isIAmATeapot())
-                    .andExpect(content().string(Application.EXPECTED_ERROR));
+                    .andExpect(content().string("Expected"));
         }
-    }
-
-    private static String extractMessage(Exception exception) {
-        return getMostSpecificCause(exception).getMessage();
     }
 
     interface OuterHandler {
@@ -55,9 +53,9 @@ public class Tests {
         default public ResponseEntity<String> handleOuter(MyOuterException exception) {
             log.warn("handleOuter", exception);
             if (getMostSpecificCause(exception) instanceof MyInnerException) {
-                return status(I_AM_A_TEAPOT).body(extractMessage(exception));
+                return status(I_AM_A_TEAPOT).body(getMostSpecificCause(exception).getMessage());
             } else {
-                return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+                return status(INTERNAL_SERVER_ERROR).body(exception.getMessage());
             }
         }
     }
@@ -66,7 +64,7 @@ public class Tests {
         @ExceptionHandler
         default public ResponseEntity<String> handleInner(MyInnerException exception) {
             log.warn("handleInner", exception);
-            return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+            return status(INTERNAL_SERVER_ERROR).body(exception.getMessage());
         }
     }
 
@@ -74,7 +72,7 @@ public class Tests {
         @ExceptionHandler
         default public ResponseEntity<String> handleInner(MyInnerException exception) {
             log.warn("handleInner", exception);
-            return status(I_AM_A_TEAPOT).body(extractMessage(exception));
+            return status(I_AM_A_TEAPOT).body(exception.getMessage());
         }
     }
 
@@ -82,7 +80,7 @@ public class Tests {
         @ExceptionHandler
         default public ResponseEntity<String> handleGeneric(Exception exception) {
             log.warn("handleGeneric", exception);
-            return status(INTERNAL_SERVER_ERROR).body(extractMessage(exception));
+            return status(INTERNAL_SERVER_ERROR).body(exception.getMessage());
         }
     }
 
@@ -151,26 +149,31 @@ public class Tests {
     }
 
     /**
-     * Catching MyInnerException in a separate ControllerAdvice doesn't work if rearranged
+     * Catching MyInnerException in a separate ControllerAdvice doesn't work if rearranged (unless order is enforced)
      */
-    @ContextConfiguration(classes = WorkaroundAdditionalAdvice_UnluckyHashBug.class)
+    @ContextConfiguration(classes = WorkaroundAdditionalAdvice_UnluckyHashBug_Fixed.class)
     @TestConfiguration
-    public static class WorkaroundAdditionalAdvice_UnluckyHashBug extends Base {
+    public static class WorkaroundAdditionalAdvice_UnluckyHashBug_Fixed extends Base {
 
+        @Order(Ordered.HIGHEST_PRECEDENCE)
         @RestControllerAdvice
         public class AdviceWithNoGeneric implements InnerHandler {
         }
 
+        @Order
         @RestControllerAdvice
         public class Advice implements InnerHandlerError, GenericHandlerError {
         }
     }
 
+    /**
+     * Only exceptions of depth 1 are included as a candidates to @ExceptionHandler
+     */
     @RunWith(SpringRunner.class)
     @SpringBootTest
-    @ContextConfiguration(classes = SingleAspect_DeepExceptionBug.class)
+    @ContextConfiguration(classes = SingleAspect_DeepExceptionNotMatchedBug.class)
     @TestConfiguration
-    public static class SingleAspect_DeepExceptionBug {
+    public static class SingleAspect_DeepExceptionNotMatchedBug {
 
         @Autowired
         protected WebApplicationContext webApplicationContext;
